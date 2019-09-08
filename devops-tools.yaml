@@ -1,0 +1,89 @@
+version: "3"
+services:
+
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    ports:
+      - "8002:80"
+      - "8001:443"
+      - "8003:22"
+    volumes:
+      - "/mydir/gitlab/config:/etc/gitlab"
+      - "/mydir/gitlab/logs:/var/log/gitlab"
+      - "/mydir/gitlab/data:/var/opt/gitlab"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        gitlab_rails['gitlab_shell_ssh_port'] = 8003
+    hostname: "jaydeepjenkins.eastasia.cloudapp.azure.com"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+
+  nexus:
+    image: sonatype/nexus3
+    ports:
+      - "8081:8081"
+      - "8007:8007"
+    volumes:
+      - "/mydir/nexus/nexus-data:/nexus-data"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - "/mydir/grafana:/var/lib/grafana"
+    environment:
+      - "GF_SECURITY_ADMIN_PASSWORD=admin"
+      - "GF_SERVER_ROOT_URL=http://jaydeepjenkins.eastasia.cloudapp.azure.com:3000"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+
+  influxdb:
+    image: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - "/mydir/influxdb:/var/lib/influxdb"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+
+  visualizer:
+    image: dockersamples/visualizer
+    ports:
+      - "8005:8080"
+    stop_grace_period: 1m30s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
